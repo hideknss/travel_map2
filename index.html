@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>ペット同伴OKの宿をマップ表示</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; display: flex; }
+    h2 { padding: 1em; margin: 0; }
+    #sidebar { 
+      width: 300px; 
+      background: #f5f5f5; 
+      padding: 20px; 
+      box-sizing: border-box;
+      height: 100vh;
+      overflow-y: auto;
+    }
+    #map { height: 100vh; flex: 1; }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+      color: #333;
+    }
+    .form-group input {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    #searchBtn {
+      width: 100%;
+      padding: 12px;
+      background: #1976d2;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      margin-top: 10px;
+    }
+    #searchBtn:hover {
+      background: #1565c0;
+    }
+    .title {
+      font-size: 18px;
+      margin-bottom: 20px;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+  <div id="sidebar">
+    <div class="title">🐾 ペット同伴OK宿検索</div>
+    
+    <div class="form-group">
+      <label for="checkinDate">チェックイン日</label>
+      <input type="date" id="checkinDate" value="2025-08-10">
+    </div>
+    
+    <div class="form-group">
+      <label for="checkoutDate">チェックアウト日</label>
+      <input type="date" id="checkoutDate" value="2025-08-11">
+    </div>
+    
+    <div class="form-group">
+      <label for="adultNum">大人の人数</label>
+      <select id="adultNum" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+        <option value="1">1名</option>
+        <option value="2" selected>2名</option>
+        <option value="3">3名</option>
+        <option value="4">4名</option>
+        <option value="5">5名</option>
+        <option value="6">6名</option>
+      </select>
+    </div>
+    
+    <button id="searchBtn" onclick="searchHotels()">検索</button>
+  </div>
+  
+  <div id="map"></div>
+
+  <script>
+    const rakutenAppId = '1045565995948230424';
+    const googleMapApiKey = 'AIzaSyDGUJ80YBBxM1uiBY-wSdp1Ng_iQl90MKE'; // 公開注意
+
+    function buildRakutenUrl() {
+      const checkinDate = document.getElementById('checkinDate').value;
+      const checkoutDate = document.getElementById('checkoutDate').value;
+      const adultNum = document.getElementById('adultNum').value;
+      
+      return `https://app.rakuten.co.jp/services/api/Travel/KeywordHotelSearch/20170426?format=jsonp&keyword=%E3%83%9A%E3%83%83%E3%83%88ok&applicationId=${rakutenAppId}&hits=30&checkinDate=${checkinDate}&checkoutDate=${checkoutDate}&adultNum=${adultNum}`;
+    }
+
+    let map;
+
+    // 楽天APIの秒単位座標を度に変換する関数
+    function convertRakutenCoordinates(lat, lng) {
+      // 楽天APIは秒単位で座標を返す（1度 = 3600秒）
+      const latDegrees = lat / 3600;
+      const lngDegrees = lng / 3600;
+      
+      return {
+        lat: latDegrees,
+        lng: lngDegrees
+      };
+    }
+
+    function searchHotels() {
+      // 既存のマーカーをクリア
+      if (map) {
+        // マーカーをクリアする処理を追加
+        console.log("検索を実行します...");
+        initMap();
+      }
+    }
+
+    function initMap() {
+      map = new google.maps.Map(document.getElementById("map"), {
+        center: { lat: 35.681236, lng: 139.767125 },
+        zoom: 12
+      });
+
+      // JSONPを使用してCORS問題を回避
+      const script = document.createElement('script');
+      const callbackName = 'rakutenCallback';
+      
+      window[callbackName] = function(data) {
+        console.log("楽天APIレスポンス:", data);
+        console.log("データ構造確認:", typeof data, Object.keys(data));
+        
+        if (!data || (!data.hotels && !data.Items)) {
+          console.log("ホテルデータが見つかりません:", data);
+          alert("ペット同伴OKの宿が見つかりませんでした。");
+          return;
+        }
+        
+        // データ構造を確認（楽天APIは時々異なる構造を返す）
+        const hotels = data.hotels || data.Items;
+        if (!hotels || hotels.length === 0) {
+          console.log("ホテル配列が空です:", hotels);
+          alert("ペット同伴OKの宿が見つかりませんでした。");
+          return;
+        }
+        
+        console.log("取得したホテル数:", hotels.length);
+
+        // ホテル情報を配列に整理
+        const hotelList = hotels.map((entry, index) => {
+          console.log(`ホテル${index + 1}の構造:`, entry);
+          
+          // データ構造を確認して適切にアクセス
+          const info = entry.hotel ? entry.hotel[0].hotelBasicInfo : entry;
+          console.log(`ホテル${index + 1}の基本情報:`, info);
+          
+          if (!info) {
+            console.log(`ホテル${index + 1}: 基本情報が見つかりません`);
+            return null;
+          }
+          
+          let lat = parseFloat(info.latitude);
+          let lng = parseFloat(info.longitude);
+          
+          console.log(`ホテル${index + 1}の座標: lat=${lat}, lng=${lng}`);
+
+          if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
+            console.log(`ホテル${index + 1}: 座標が無効です`);
+            return null;
+          }
+
+          // 楽天座標を正規化
+          const convertedCoords = convertRakutenCoordinates(lat, lng);
+          console.log(`ホテル${index + 1}の変換後座標: lat=${convertedCoords.lat}, lng=${convertedCoords.lng}`);
+          
+          // 変換後の座標が有効かチェック
+          if (isNaN(convertedCoords.lat) || isNaN(convertedCoords.lng) || convertedCoords.lat < -90 || convertedCoords.lat > 90 || convertedCoords.lng < -180 || convertedCoords.lng > 180) {
+            console.log(`ホテル${index + 1}: 変換後の座標が無効です`);
+            return null;
+          }
+          
+          return {
+            name: info.hotelName,
+            lat: convertedCoords.lat,
+            lng: convertedCoords.lng,
+            url: info.hotelInformationUrl,
+            imageUrl: info.hotelImageUrl || info.hotelThumbnailUrl,
+            petInfo: info.hotelSpecial || '',
+            area: info.hotelArea || '',
+            minCharge: info.hotelMinCharge || ''
+          };
+        }).filter(hotel => hotel !== null);
+        
+        console.log("処理されたホテル数:", hotelList.length);
+
+        // すべてのホテルを表示（制限なし）
+        const limitedHotelList = hotelList;
+        console.log(`表示するホテル数: ${limitedHotelList.length}`);
+
+        // マップの境界を計算してすべてのホテルが表示されるように調整
+        if (limitedHotelList.length > 0) {
+          const bounds = new google.maps.LatLngBounds();
+          
+          limitedHotelList.forEach(hotel => {
+            bounds.extend(new google.maps.LatLng(hotel.lat, hotel.lng));
+          });
+          
+          // 境界にパディングを追加してマップをフィット
+          map.fitBounds(bounds, {
+            padding: { top: 50, right: 50, bottom: 50, left: 50 }
+          });
+          
+          // ズームレベルが高くなりすぎないように制限
+          const maxZoom = 10;
+          google.maps.event.addListenerOnce(map, 'bounds_changed', function() {
+            if (map.getZoom() > maxZoom) {
+              map.setZoom(maxZoom);
+            }
+          });
+        }
+
+        // 整理されたホテル配列からマーカーを作成
+        limitedHotelList.forEach(hotel => {
+          const marker = new google.maps.Marker({
+            position: { lat: hotel.lat, lng: hotel.lng },
+            map: map,
+            title: hotel.name
+          });
+
+          const infoWindow = new google.maps.InfoWindow({
+            content: `
+              <div style="min-width:250px; max-width:300px; padding:5px;">
+                ${hotel.imageUrl ? `<img src="${hotel.imageUrl}" alt="${hotel.name}" style="width:100%; height:120px; object-fit:cover; border-radius:4px; margin-bottom:8px; display:block;">` : ''}
+                <strong style="font-size:14px; display:block; margin-bottom:5px;">${hotel.name}</strong>
+                <div style="background:#e8f5e8; padding:4px 8px; border-radius:4px; margin-bottom:5px; font-size:12px;">
+                  🐕 ペット同伴OK
+                </div>
+                ${hotel.area ? `<div style="font-size:12px; color:#666; margin-bottom:3px;">📍 ${hotel.area}</div>` : ''}
+                ${hotel.minCharge ? `<div style="font-size:12px; color:#666; margin-bottom:5px;">💰 ${hotel.minCharge}円～</div>` : ''}
+                ${hotel.petInfo ? `<div style="font-size:11px; color:#555; margin-bottom:5px; background:#f0f0f0; padding:3px 6px; border-radius:3px;">${hotel.petInfo}</div>` : ''}
+                <a href="${hotel.url}" target="_blank" style="color:#1976d2; text-decoration:none; font-size:13px;">詳細を見る →</a>
+              </div>`
+          });
+
+          marker.addListener("click", () => infoWindow.open(map, marker));
+        });
+        
+        // スクリプトタグを削除
+        document.head.removeChild(script);
+        delete window[callbackName];
+      };
+      
+      script.src = buildRakutenUrl() + '&callback=' + callbackName;
+      script.onerror = function() {
+        console.error("楽天API呼び出しエラー");
+        alert("楽天APIの取得に失敗しました。アプリIDを確認してください。");
+      };
+      
+      document.head.appendChild(script);
+    }
+
+    // Google Maps APIが読み込まれた後にinitMapを実行
+    window.onload = function() {
+      if (typeof google !== 'undefined') {
+        initMap();
+      }
+    };
+  </script>
+
+  <script async defer
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDGUJ80YBBxM1uiBY-wSdp1Ng_iQl90MKE">
+  </script>
+</body>
+</html>
