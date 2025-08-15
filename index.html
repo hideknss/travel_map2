@@ -78,6 +78,19 @@
       </select>
     </div>
     
+    <div class="form-group">
+      <label for="priceRange">価格帯（1泊あたり）</label>
+      <select id="priceRange" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+        <option value="">すべての価格帯</option>
+        <option value="0-5000">～5,000円</option>
+        <option value="5000-10000">5,000円～10,000円</option>
+        <option value="10000-15000">10,000円～15,000円</option>
+        <option value="15000-20000">15,000円～20,000円</option>
+        <option value="20000-30000">20,000円～30,000円</option>
+        <option value="30000-">30,000円～</option>
+      </select>
+    </div>
+    
     <button id="searchBtn" onclick="searchHotels()">検索</button>
   </div>
   
@@ -107,6 +120,30 @@
         lat: latDegrees,
         lng: lngDegrees
       };
+    }
+
+    // 価格フィルタリング関数
+    function filterByPrice(hotels) {
+      const priceRange = document.getElementById('priceRange').value;
+      if (!priceRange) return hotels;
+      
+      const [minPrice, maxPrice] = priceRange.split('-').map(p => p ? parseInt(p) : null);
+      
+      return hotels.filter(hotel => {
+        if (!hotel.minCharge) return true; // 価格情報がない場合は表示
+        
+        const price = parseInt(hotel.minCharge);
+        if (isNaN(price)) return true;
+        
+        if (minPrice && maxPrice) {
+          return price >= minPrice && price <= maxPrice;
+        } else if (minPrice) {
+          return price >= minPrice;
+        } else if (maxPrice) {
+          return price <= maxPrice;
+        }
+        return true;
+      });
     }
 
     function searchHotels() {
@@ -195,8 +232,12 @@
         
         console.log("処理されたホテル数:", hotelList.length);
 
+        // 価格フィルタを適用
+        const filteredHotelList = filterByPrice(hotelList);
+        console.log(`価格フィルタ適用後のホテル数: ${filteredHotelList.length}`);
+
         // すべてのホテルを表示（制限なし）
-        const limitedHotelList = hotelList;
+        const limitedHotelList = filteredHotelList;
         console.log(`表示するホテル数: ${limitedHotelList.length}`);
 
         // マップの境界を計算してすべてのホテルが表示されるように調整
