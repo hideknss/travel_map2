@@ -119,9 +119,142 @@
       margin-bottom: 20px;
       color: #333;
     }
+    .cloud-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 1000;
+      overflow: hidden;
+    }
+    .cloud {
+      position: absolute;
+      background: linear-gradient(135deg, 
+        rgba(255, 255, 255, 0.9) 0%, 
+        rgba(240, 248, 255, 0.8) 30%, 
+        rgba(220, 230, 250, 0.7) 60%, 
+        rgba(200, 220, 240, 0.6) 100%);
+      border-radius: 50px;
+      opacity: 0.6;
+      animation: cloudFloat linear infinite;
+      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+    }
+    .cloud:before, .cloud:after {
+      content: '';
+      position: absolute;
+      background: inherit;
+      border-radius: 50px;
+    }
+    .cloud1 {
+      width: 120px;
+      height: 40px;
+      top: 15%;
+      left: -150px;
+      animation-duration: 45s;
+    }
+    .cloud1:before {
+      width: 60px;
+      height: 60px;
+      top: -30px;
+      left: 10px;
+    }
+    .cloud1:after {
+      width: 80px;
+      height: 50px;
+      top: -20px;
+      right: 15px;
+    }
+    .cloud2 {
+      width: 180px;
+      height: 60px;
+      top: 25%;
+      left: -200px;
+      animation-duration: 60s;
+      animation-delay: -10s;
+    }
+    .cloud2:before {
+      width: 90px;
+      height: 90px;
+      top: -45px;
+      left: 20px;
+    }
+    .cloud2:after {
+      width: 70px;
+      height: 70px;
+      top: -35px;
+      right: 20px;
+    }
+    .cloud3 {
+      width: 150px;
+      height: 50px;
+      top: 40%;
+      left: -180px;
+      animation-duration: 50s;
+      animation-delay: -25s;
+    }
+    .cloud3:before {
+      width: 75px;
+      height: 75px;
+      top: -37px;
+      left: 15px;
+    }
+    .cloud3:after {
+      width: 60px;
+      height: 60px;
+      top: -30px;
+      right: 25px;
+    }
+    .cloud4 {
+      width: 200px;
+      height: 70px;
+      top: 8%;
+      left: -250px;
+      animation-duration: 70s;
+      animation-delay: -40s;
+      opacity: 0.4;
+    }
+    .cloud4:before {
+      width: 100px;
+      height: 100px;
+      top: -50px;
+      left: 25px;
+    }
+    .cloud4:after {
+      width: 80px;
+      height: 80px;
+      top: -40px;
+      right: 30px;
+    }
+    @keyframes cloudFloat {
+      0% {
+        transform: translateX(0) translateY(0);
+      }
+      25% {
+        transform: translateX(25vw) translateY(-10px);
+      }
+      50% {
+        transform: translateX(50vw) translateY(5px);
+      }
+      75% {
+        transform: translateX(75vw) translateY(-5px);
+      }
+      100% {
+        transform: translateX(calc(100vw + 300px)) translateY(0);
+      }
+    }
   </style>
 </head>
 <body>
+  <!-- 雲のコンテナ -->
+  <div class="cloud-container">
+    <div class="cloud cloud1"></div>
+    <div class="cloud cloud2"></div>
+    <div class="cloud cloud3"></div>
+    <div class="cloud cloud4"></div>
+  </div>
+  
   <div id="sidebar">
     <div class="title">🐾 ペット同伴OK宿検索</div>
     
